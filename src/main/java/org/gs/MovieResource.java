@@ -7,6 +7,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
@@ -17,10 +18,13 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 public class MovieResource {
 
   @Inject MovieRepository movieRepository;
+  @Inject MovieMapper mapper;
 
   @GET
   public Response getAll() {
-    List<Movie> movies = movieRepository.listAll();
+    List<MovieDTO> movies = movieRepository.listAll().stream()
+            .map(movie -> mapper.toDTO(movie))
+            .collect(Collectors.toList());
     return Response.ok(movies).build();
   }
 
@@ -29,7 +33,7 @@ public class MovieResource {
   public Response getById(@PathParam("id") Long id) {
     return movieRepository
         .findByIdOptional(id)
-        .map(movie -> Response.ok(movie).build())
+        .map(movie -> Response.ok(mapper.toDTO(movie)).build())
         .orElse(Response.status(NOT_FOUND).build());
   }
 
@@ -39,20 +43,24 @@ public class MovieResource {
     return movieRepository
         .find("title", title)
         .singleResultOptional()
-        .map(movie -> Response.ok(movie).build())
+        .map(movie -> Response.ok(mapper.toDTO(movie)).build())
         .orElse(Response.status(NOT_FOUND).build());
   }
 
   @GET
   @Path("country/{country}")
   public Response getByCountry(@PathParam("country") String country) {
-    List<Movie> movies = movieRepository.findByCountry(country);
+    List<MovieDTO> movies = movieRepository.findByCountry(country)
+            .stream()
+            .map(movie -> mapper.toDTO(movie))
+            .collect(Collectors.toList());
     return Response.ok(movies).build();
   }
 
   @POST
   @Transactional
-  public Response create(Movie movie) {
+  public Response create(MovieDTO movieDTO) {
+    Movie movie = mapper.toDAO(movieDTO);
     movieRepository.persist(movie);
     if (movieRepository.isPersistent(movie)) {
       return Response.created(URI.create("/movies/" + movie.getId())).build();
