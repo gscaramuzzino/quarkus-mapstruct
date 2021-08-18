@@ -22,7 +22,8 @@ public class MovieResource {
 
   @GET
   public Response getAll() {
-    List<MovieDTO> movies = movieRepository.listAll().stream()
+    List<MovieDTO> movies =
+        movieRepository.listAll().stream()
             .map(movie -> mapper.toDTO(movie))
             .collect(Collectors.toList());
     return Response.ok(movies).build();
@@ -50,8 +51,8 @@ public class MovieResource {
   @GET
   @Path("country/{country}")
   public Response getByCountry(@PathParam("country") String country) {
-    List<MovieDTO> movies = movieRepository.findByCountry(country)
-            .stream()
+    List<MovieDTO> movies =
+        movieRepository.findByCountry(country).stream()
             .map(movie -> mapper.toDTO(movie))
             .collect(Collectors.toList());
     return Response.ok(movies).build();
@@ -66,6 +67,20 @@ public class MovieResource {
       return Response.created(URI.create("/movies/" + movie.getId())).build();
     }
     return Response.status(NOT_FOUND).build();
+  }
+
+  @PUT
+  @Transactional
+  public Response updateMovie(MovieDTO movieDTO) {
+    return movieRepository
+        .findByIdOptional(movieDTO.getId())
+        .map(
+            movieToUpdate -> {
+              Movie movieUpdated = mapper.toDAO(movieDTO);
+              mapper.merge(movieToUpdate, movieUpdated);
+              return Response.ok(mapper.toDTO(movieToUpdate)).build();
+            })
+        .orElse(Response.status(NOT_FOUND).build());
   }
 
   @DELETE
